@@ -10,12 +10,13 @@
     <h1>SEIR モデル シミュレータ</h1>
     <div id="stage"></div>
     <div id="app">
-        <div>初期無免疫者 S: <input v-model="Sinit" /></div>
-        <div>初期感染者 I: <input v-model="Iinit" /></div>
-        <div>基本再生産数 R0: <input v-model="R0" /></div>
+        <div>初期無免疫者 S: <input v-model="Sinit" type="number"/></div>
+        <div>初期感染者 I: <input v-model="Iinit" type="number"/></div>
+        <div>基本再生産数 R0: <input v-model="R0" type="number"/></div>
         <div>感染率 beta: <input v-model="beta" /></div>
-        <div>潜伏期間 lp: <input v-model="lp" /></div>
-        <div>発症期間 ip: <input v-model="ip" /></div>
+        <div>潜伏期間 lp: <input v-model="lp" type="number"/></div>
+        <div>発症期間 ip: <input v-model="ip" type="number"/></div>
+        <div>検査後隔離 T: <input v-model="T" type="number"/></div>
         <div><button type="button"  v-on:click='clickCalc' class="btn">再計算</button></div>
     </div>
 
@@ -24,6 +25,9 @@
         <ul>
             <li>初期免疫者(S)と初期感染者(I)を入力して「再計算」します</li>
             <li>基本再生産数(R0)を1以下にすると、発症者数(Infected)のピークを右にずらすことができます</li>
+            <li>発症者数(Infected)に対して検査(T:0.0～1.0)を行い隔離(免疫者扱いにする）します。
+                このシミュレーションでは、全員検査(1.0)をしなくても、2割程度で発症者のピークを抑えられます
+            </li>
         </ul>
     </div>
 </body>
@@ -46,25 +50,22 @@ var Einit  = 0       // 潜伏期間
 var Iinit  = 5       // 発病者
 var Rinit  = 0       // 有免疫
 
-var state_ini=[Sinit,Einit,Iinit,Rinit]
 
 var R0 = 1.4        // 基本再生産数
 var beta = Iinit * R0 / Sinit   // 感染率 = (初期感染者*R0)/総数
 var lp = 14         // 潜伏期間
 var ip = 7          // 発症期間
-
-console.log("R0: " + R0 );
-console.log("beta: " + beta );
-console.log("lp: " + lp );
-console.log("ip: " + ip );
+var T  = 0.0        // 検査で隔離
 
 var lst = [] ;
 
 function calc() {
     var t_max = 100 ;
     var dt = 1 ;
-    var state = state_ini ;
+    var state=[Sinit,Einit,Iinit,Rinit]
     lst = []
+
+    console.log( state );
 
     for ( var i=0; i<t_max; i++ ) {
 
@@ -74,9 +75,9 @@ function calc() {
         var Ii = state[2]+d[2]
         var Ri = state[3]+d[3]
         // 感染者を発見して隔離する
-        // dx = Ii * 0.0
-        // Ii = Ii - dx
-        // Ri = Ri + dx # 免疫者に加算
+        dx = Ii * T
+        Ii = Ii - dx
+        Ri = Ri + dx // 免疫者に加算
         state = [ Si, Ei, Ii, Ri ]
         // console.log( state );
         lst.push( state );
@@ -123,12 +124,13 @@ function dispChart() {
 var vm = new Vue({
     el: '#app',
     data: {
-        Sinit: 3000,
-        Iinit: 5,
-        beta: 0.0,
-        R0: 1.4,
-        lp: 14,
-        ip: 7,
+        Sinit: Sinit,
+        Iinit: Iinit,
+        beta: beta,
+        R0: R0,
+        lp: lp,
+        ip: ip,
+        T: T,
     },
 
     mounted: function() {
@@ -137,16 +139,20 @@ var vm = new Vue({
     },
     methods: {
         clickCalc: function() {
-            this.beta = this.Iinit * this.R0 / this.Sinit
-
-            Sinit = this.Sinit ;
-            Iinit = this.Iinit ;
+            Sinit = Number(this.Sinit) ;
+            Iinit = Number(this.Iinit) ;
             Einit = 0
             Rinit = 0
-            beta = this.beta ;
-            R0 = this.R0 ;
-            lp = this.lp ;
-            ip = this.ip ;
+            R0 = Number(this.R0) ;
+            lp = Number(this.lp) ;
+            ip = Number(this.ip) ;
+            T = Number(this.T);
+            beta = this.beta = this.Iinit * this.R0 / this.Sinit
+console.log("R0: " + R0 );
+console.log("beta: " + beta );
+console.log("lp: " + lp );
+console.log("ip: " + ip );
+console.log("T: " + T );
 
             calc();
             dispChart();
