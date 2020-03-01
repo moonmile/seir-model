@@ -1,6 +1,7 @@
 <!DOCTYPE HTML>
 <html>
-<head>  
+<head>
+    <title>SEIR モデル シミュレータ</title>
     <link href="./js/c3.css" rel="stylesheet">
     <script src="https://d3js.org/d3.v5.js"></script>
     <script src="./js/c3.min.js"></script>
@@ -23,17 +24,18 @@
     <div>
         <h2>使い方</h2>
         <ul>
-            <li>初期免疫者(S)と初期感染者(I)を入力して「再計算」します</li>
-            <li>基本再生産数(R0)を1以下にすると、発症者数(Infected)のピークを右にずらすことができます</li>
-            <li>発症者数(Infected)に対して検査(T:0.0～1.0)を行い隔離(免疫者扱いにする）します。
-                このシミュレーションでは、全員検査(1.0)をしなくても、2割程度で発症者のピークを抑えられます
-            </li>
+            <li>初期免疫者(S)と初期感染者(I)を入力して「再計算」する</li>
+            <li>基本再生産数 R0 を 1.4から2.5に変化させてシミュレーションする</li>
+        </ul>
+        <h2>考察</h2>
+        <ul>
+            <li>基本再生産数(R0)を1以下にすると、発症者数(Infected)のピークを右にずらすことができる</li>
+            <li>発症者数(Infected)に対して検査(T:0.0～1.0)を行い隔離(免疫者扱いにする）。</li>
+            <li>このシミュレーションでは、全員検査(1.0)をしなくても、2割程度で発症者のピークを抑えられる。</li>
         </ul>
     </div>
 </body>
 <script>
-
-
 function seir_eq(v,t,beta,lp,ip) {
 
     b = beta 
@@ -78,6 +80,18 @@ function calc() {
         dx = Ii * T
         Ii = Ii - dx
         Ri = Ri + dx // 免疫者に加算
+
+        // マイナス値を調節する
+        if ( Si < 0 ) {
+            Ei = Ei + Si; Si = 0;
+        }
+        if ( Ei < 0 ) {
+            Ii = Ii + Ei; Ei = 0;
+        }
+        if ( Ii < 0 ) {
+            Ri = Ri + Ii; Ii = 0;
+        }
+
         state = [ Si, Ei, Ii, Ri ]
         // console.log( state );
         lst.push( state );
