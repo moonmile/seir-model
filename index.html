@@ -1,0 +1,151 @@
+<!DOCTYPE HTML>
+<html>
+<head>  
+    <link href="./c3-0.7.15/c3.css" rel="stylesheet">
+    <script src="https://d3js.org/d3.v5.js"></script>
+    <script src="./c3-0.7.15/c3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+    <h1>SEIR モデル シミュレータ</h1>
+    <div id="stage"></div>
+    <div id="app">
+        <div>初期無免疫者 S: <input v-model="Sinit" /></div>
+        <div>初期感染者 I: <input v-model="Iinit" /></div>
+        <div>基本再生産数 R0: <input v-model="R0" /></div>
+        <div>感染率 beta: <input v-model="beta" /></div>
+        <div>潜伏期間 lp: <input v-model="lp" /></div>
+        <div>発症期間 ip: <input v-model="ip" /></div>
+        <div><button type="button"  v-on:click='clickCalc' class="btn">再計算</button></div>
+    </div>
+</body>
+<script>
+
+
+function seir_eq(v,t,beta,lp,ip) {
+
+    b = beta 
+    ds = -b*v[0]*v[2]               // dS/dt = -βSI
+    de = b*v[0]*v[2]-(1/lp)*v[1]    // dE/dt = βSI-E/lp
+    di = (1/lp)*v[1]-(1/ip)*v[2]    // dI/dt = E/lp - I/ip
+    dr = (1/ip)*v[2]                // dR/dt = I/ip 
+
+    return [ds,de,di,dr];
+}
+
+var Sinit  = 3000    // 無免疫者（総数）
+var Einit  = 0       // 潜伏期間
+var Iinit  = 5       // 発病者
+var Rinit  = 0       // 有免疫
+
+var state_ini=[Sinit,Einit,Iinit,Rinit]
+
+var R0 = 1.4        // 基本再生産数
+var beta = Iinit * R0 / Sinit   // 感染率 = (初期感染者*R0)/総数
+var lp = 14         // 潜伏期間
+var ip = 7          // 発症期間
+
+console.log("R0: " + R0 );
+console.log("beta: " + beta );
+console.log("lp: " + lp );
+console.log("ip: " + ip );
+
+var lst = [] ;
+
+function calc() {
+    var t_max = 100 ;
+    var dt = 1 ;
+    var state = state_ini ;
+    lst = []
+
+    for ( var i=0; i<t_max; i++ ) {
+
+        var d =  seir_eq( state, i, beta, lp, ip )
+        var Si = state[0]+d[0]
+        var Ei = state[1]+d[1]
+        var Ii = state[2]+d[2]
+        var Ri = state[3]+d[3]
+        // 感染者を発見して隔離する
+        // dx = Ii * 0.0
+        // Ii = Ii - dx
+        // Ri = Ri + dx # 免疫者に加算
+        state = [ Si, Ei, Ii, Ri ]
+        // console.log( state );
+        lst.push( state );
+    }
+}
+
+
+</script>
+
+<script>
+
+var chart ;
+function dispChart() {
+    var lst_s = ['Susceptible'] ;
+    var lst_e = ['Exposed'] ;
+    var lst_i = ['Infected'] ;
+    var lst_r = ['Recovered'] ;
+
+    for ( var i=0; i<lst.length; i++ ) {
+        lst_s.push(lst[i][0] );
+        lst_e.push(lst[i][1] );
+        lst_i.push(lst[i][2] );
+        lst_r.push(lst[i][3] );
+    }
+    if ( chart == null ) {
+        chart = c3.generate({
+        bindto: '#stage',
+        data: {
+            columns: [ lst_s, lst_e, lst_i, lst_r ]
+        }});
+    } else {
+        chart.load({
+                columns: [
+                    lst_s,
+                    lst_e,
+                    lst_i,
+                    lst_r,
+                ]});
+    }
+}
+</script>
+
+<script>
+var vm = new Vue({
+    el: '#app',
+    data: {
+        Sinit: 3000,
+        Iinit: 5,
+        beta: 0.0,
+        R0: 1.4,
+        lp: 14,
+        ip: 7,
+    },
+
+    mounted: function() {
+        calc();
+        dispChart();
+    },
+    methods: {
+        clickCalc: function() {
+            this.beta = this.Iinit * this.R0 / this.Sinit
+
+            Sinit = this.Sinit ;
+            Iinit = this.Iinit ;
+            Einit = 0
+            Rinit = 0
+            beta = this.beta ;
+            R0 = this.R0 ;
+            lp = this.lp ;
+            ip = this.ip ;
+
+            calc();
+            dispChart();
+        }
+
+    },
+})
+
+</script>
+</html>
