@@ -1,9 +1,9 @@
 <!DOCTYPE HTML>
 <html>
 <head>  
-    <link href="./c3-0.7.15/c3.css" rel="stylesheet">
+    <link href="./js/c3.css" rel="stylesheet">
     <script src="https://d3js.org/d3.v5.js"></script>
-    <script src="./c3-0.7.15/c3.min.js"></script>
+    <script src="./js/c3.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
 </head>
 <body>
@@ -17,6 +17,14 @@
         <div>潜伏期間 lp: <input v-model="lp" /></div>
         <div>発症期間 ip: <input v-model="ip" /></div>
         <div><button type="button"  v-on:click='clickCalc' class="btn">再計算</button></div>
+    </div>
+
+    <div>
+        <h2>使い方</h2>
+        <ul>
+            <li>初期免疫者(S)と初期感染者(I)を入力して「再計算」します</li>
+            <li>基本再生産数(R0)を1以下にすると、発症者数(Infected)のピークを右にずらすことができます</li>
+        </ul>
     </div>
 </body>
 <script>
