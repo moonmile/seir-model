@@ -17,7 +17,10 @@
         <div>感染率 beta: <input v-model="beta" /></div>
         <div>潜伏期間 lp: <input v-model="lp" type="number"/></div>
         <div>発症期間 ip: <input v-model="ip" type="number"/></div>
-        <div>検査後隔離 T: <input v-model="T" type="number"/></div>
+        <div>検査後隔離 T: <input v-model.number="T" type="number"/>
+            <button type="button" v-on:click="clickTmuins">- 0.01</button>
+            <button type="button" v-on:click="clickTplus">+ 0.01</button>
+        </div>
         <div><button type="button"  v-on:click='clickCalc' class="btn">再計算</button></div>
     </div>
 
@@ -47,9 +50,9 @@ function seir_eq(v,t,beta,lp,ip) {
     return [ds,de,di,dr];
 }
 
-var Sinit  = 3000    // 無免疫者（総数）
+var Sinit  = 100000  // 無免疫者（総数）
 var Einit  = 0       // 潜伏期間
-var Iinit  = 5       // 発病者
+var Iinit  = 1       // 発病者
 var Rinit  = 0       // 有免疫
 
 
@@ -170,9 +173,22 @@ console.log("T: " + T );
 
             calc();
             dispChart();
+        },
+        clickTmuins: function() {
+            if ( 0.0 < this.T ) {
+                this.T = Math.floor((this.T - 0.011)*100)/100.0;
+                this.clickCalc();
+            }
+        },
+        clickTplus: function() {
+            if ( this.T  < 1.0 ) {
+                this.T = Math.floor((this.T + 0.011)*100)/100.0;
+                console.log( this.T );
+                this.clickCalc();
+            }
         }
-
     },
+    
 })
 
 </script>
