@@ -50,18 +50,18 @@ function seir_eq(v,t,beta,lp,ip) {
     return [ds,de,di,dr];
 }
 
-var Sinit  = 100000  // 無免疫者（総数）
+var Sinit  = 3000    // 無免疫者（総数）
 var Einit  = 0       // 潜伏期間
-var Iinit  = 1       // 発病者
+var Iinit  = 5       // 発病者
 var Rinit  = 0       // 有免疫
 
 
-var R0 = 1.4        // 基本再生産数
-//var beta = Iinit * R0 / Sinit   // 感染率 = (初期感染者*R0)/総数
+var R0 = 1.0        // 基本再生産数
 var lp = 14         // 潜伏期間
 var ip = 7          // 発症期間
 var T  = 0.0        // 検査で隔離
-var beta = R0 / ip  // 感染率 = R0 / 発症期間
+// var beta = R0 / ip  // 感染率 = R0 / 発症期間
+var beta = Iinit * R0 / ip / Sinit;
 
 var lst = [] ;
 
@@ -165,7 +165,8 @@ var vm = new Vue({
             lp = Number(this.lp) ;
             ip = Number(this.ip) ;
             T = Number(this.T);
-            beta = this.beta = this.Iinit * this.R0 / this.Sinit
+            // bata = this.beta = R0 / ip  
+            beta = this.beta = Iinit * R0 / ip / Sinit
 console.log("R0: " + R0 );
 console.log("beta: " + beta );
 console.log("lp: " + lp );
