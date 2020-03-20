@@ -14,7 +14,8 @@
         <div>初期無免疫者 S: <input v-model="Sinit" type="number"/></div>
         <div>初期感染者 I: <input v-model="Iinit" type="number"/></div>
         <div>基本再生産数 R0: <input v-model="R0" type="number"/></div>
-        <div>感染率 beta: <input v-model="beta" /></div>
+        <div>感染率 beta: <input v-model="beta" disable="false"/></div>
+        <div>回復率 gamma: <input v-model="gamma" disable="false"/></div>
         <div>潜伏期間 lp: <input v-model="lp" type="number"/></div>
         <div>発症期間 ip: <input v-model="ip" type="number"/></div>
         <div>検査後隔離 T: <input v-model.number="T" type="number"/>
@@ -28,24 +29,28 @@
         <h2>使い方</h2>
         <ul>
             <li>初期免疫者(S)と初期感染者(I)を入力して「再計算」する</li>
-            <li>基本再生産数 R0 を 1.4から2.5に変化させてシミュレーションする</li>
+            <li>基本再生産数 R0 を 10から1.0に変化させてシミュレーションする</li>
         </ul>
         <h2>考察</h2>
         <ul>
-            <li>基本再生産数(R0)を1以下にすると、発症者数(Infected)のピークを右にずらすことができる</li>
+            <li>基本再生産数(R0)を1に近づけることにより、発症者数(Infected)のピークを右にずらすことができる</li>
+            <li>新型コロナウィルスの R0 は 1.4～2.5程度だが、クラスターの発生（R0≒10程度）により急激に発症者数(Infected)が増える</li>
             <li>発症者数(Infected)に対して検査(T:0.0～1.0)を行い隔離(免疫者扱いにする）。</li>
             <li>このシミュレーションでは、全員検査(1.0)をしなくても、2割程度で発症者のピークを抑えられる。</li>
         </ul>
     </div>
 </body>
 <script>
-function seir_eq(v,t,beta,lp,ip) {
+function seir_eq(v,t,alpha,beta,gamma,N) {
 
-    b = beta 
-    ds = -b*v[0]*v[2]               // dS/dt = -βSI
-    de = b*v[0]*v[2]-(1/lp)*v[1]    // dE/dt = βSI-E/lp
-    di = (1/lp)*v[1]-(1/ip)*v[2]    // dI/dt = E/lp - I/ip
-    dr = (1/ip)*v[2]                // dR/dt = I/ip 
+    S = v[0]
+    E = v[1]
+    I = v[2]
+    R = v[3]
+    ds = - beta * I / N * S             // dS/dt = -βI/N*S
+    de = beta * I / N * S - alpha * E   // dE/dt = βI/N*S-αE
+    di = alpha * E - gamma * I          // dI/dt = αE - γI
+    dr = gamma * I                      // dR/dt = γI 
 
     return [ds,de,di,dr];
 }
@@ -56,26 +61,27 @@ var Iinit  = 5       // 発病者
 var Rinit  = 0       // 有免疫
 
 
-var R0 = 1.0        // 基本再生産数
+var R0 = 10.0       // 基本再生産数
 var lp = 14         // 潜伏期間
 var ip = 7          // 発症期間
+var D  = R0*ip      // 回復期間
 var T  = 0.0        // 検査で隔離
-// var beta = R0 / ip  // 感染率 = R0 / 発症期間
-var beta = Iinit * R0 / ip / Sinit;
+
+var alpha = 1/lp     // 潜伏率
+var gamma = 1/ip     // 回復率
+var beta  = R0*gamma // 感染率
 
 var lst = [] ;
-
-function calc() {
+function calc(state,alpha,beta,gamma) {
     var t_max = 100 ;
     var dt = 1 ;
-    var state=[Sinit,Einit,Iinit,Rinit]
     lst = []
-
+    var N = Sinit + Einit + Iinit + Rinit
     console.log( state );
 
     for ( var i=0; i<t_max; i++ ) {
 
-        var d =  seir_eq( state, i, beta, lp, ip )
+        var d =  seir_eq( state, i, alpha,beta,gamma, N )
         var Si = state[0]+d[0]
         var Ei = state[1]+d[1]
         var Ii = state[2]+d[2]
@@ -149,31 +155,37 @@ var vm = new Vue({
         lp: lp,
         ip: ip,
         T: T,
+        D: D,
+        gamma: gamma,
+        alpha: alpha,
     },
 
     mounted: function() {
-        calc();
-        dispChart();
+        this.clickCalc();
     },
     methods: {
         clickCalc: function() {
             Sinit = Number(this.Sinit) ;
-            Iinit = Number(this.Iinit) ;
             Einit = 0
+            Iinit = Number(this.Iinit) ;
             Rinit = 0
             R0 = Number(this.R0) ;
             lp = Number(this.lp) ;
             ip = Number(this.ip) ;
+            this.D = D  = R0*ip      // 回復期間
             T = Number(this.T);
-            // bata = this.beta = R0 / ip  
-            beta = this.beta = Iinit * R0 / ip / Sinit
+            this.alpha = alpha = 1/lp   // 潜伏率
+            this.gamma = gamma = 1/ip   // 回復率
+            this.beta = beta = R0*gamma // 感染率
+
+
 console.log("R0: " + R0 );
 console.log("beta: " + beta );
 console.log("lp: " + lp );
 console.log("ip: " + ip );
 console.log("T: " + T );
-
-            calc();
+            var state = [Sinit,Einit,Iinit,Rinit];
+            calc(state,alpha,beta,gamma);
             dispChart();
         },
         clickTmuins: function() {
