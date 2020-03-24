@@ -13,7 +13,10 @@
     <div id="app">
         <div>初期無免疫者 S: <input v-model="Sinit" type="number"/></div>
         <div>初期感染者 I: <input v-model="Iinit" type="number"/></div>
-        <div>基本再生産数 R0: <input v-model="R0" type="number"/></div>
+        <div>基本再生産数 R0: <input v-model="R0" type="number"/>
+            <button type="button" v-on:click="clickR0muins">- 0.1</button>
+            <button type="button" v-on:click="clickR0plus">+ 0.1</button>
+        </div>
         <div>感染率 beta: <input v-model="beta" disable="false"/></div>
         <div>回復率 gamma: <input v-model="gamma" disable="false"/></div>
         <div>潜伏期間 lp: <input v-model="lp" type="number"/></div>
@@ -204,6 +207,17 @@ console.log("T: " + T );
                 console.log( this.T );
                 this.clickCalc();
             }
+        },
+        clickR0muins: function() {
+            if ( 0.0 < this.R0 ) {
+                this.R0 = Math.floor((this.R0 - 0.11)*10)/10.0;
+                this.clickCalc();
+            }
+        },
+        clickR0plus: function() {
+            this.R0 = Math.floor((this.R0 + 0.11)*10)/10.0;
+            console.log( this.T );
+            this.clickCalc();
         }
     },
     
