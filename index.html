@@ -25,6 +25,7 @@
             <button type="button" v-on:click="clickTmuins">- 0.01</button>
             <button type="button" v-on:click="clickTplus">+ 0.01</button>
         </div>
+        <div>全体の期間 t_max: <input v-model="t_max" type="number"/></div>
         <div><button type="button"  v-on:click='clickCalc' class="btn">再計算</button></div>
     </div>
 
@@ -48,72 +49,8 @@
     </div>
 </body>
 <script>
-function seir_eq(v,t,alpha,beta,gamma,N) {
-
-    S = v[0]
-    E = v[1]
-    I = v[2]
-    R = v[3]
-    ds = - beta * I / N * S             // dS/dt = -βI/N*S
-    de = beta * I / N * S - alpha * E   // dE/dt = βI/N*S-αE
-    di = alpha * E - gamma * I          // dI/dt = αE - γI
-    dr = gamma * I                      // dR/dt = γI 
-
-    return [ds,de,di,dr];
-}
-
-var Sinit  = 3000    // 無免疫者（総数）
-var Einit  = 0       // 潜伏期間
-var Iinit  = 5       // 発病者
-var Rinit  = 0       // 有免疫
 
 
-var R0 = 10.0       // 基本再生産数
-var lp = 14         // 潜伏期間
-var ip = 7          // 発症期間
-var D  = R0*ip      // 回復期間
-var T  = 0.0        // 検査で隔離
-
-var alpha = 1/lp     // 潜伏率
-var gamma = 1/ip     // 回復率
-var beta  = R0*gamma // 感染率
-
-var lst = [] ;
-function calc(state,alpha,beta,gamma) {
-    var t_max = 100 ;
-    var dt = 1 ;
-    lst = []
-    var N = Sinit + Einit + Iinit + Rinit
-    console.log( state );
-
-    for ( var i=0; i<t_max; i++ ) {
-
-        var d =  seir_eq( state, i, alpha,beta,gamma, N )
-        var Si = state[0]+d[0]
-        var Ei = state[1]+d[1]
-        var Ii = state[2]+d[2]
-        var Ri = state[3]+d[3]
-        // 感染者を発見して隔離する
-        dx = Ii * T
-        Ii = Ii - dx
-        Ri = Ri + dx // 免疫者に加算
-
-        // マイナス値を調節する
-        if ( Si < 0 ) {
-            Ei = Ei + Si; Si = 0;
-        }
-        if ( Ei < 0 ) {
-            Ii = Ii + Ei; Ei = 0;
-        }
-        if ( Ii < 0 ) {
-            Ri = Ri + Ii; Ii = 0;
-        }
-
-        state = [ Si, Ei, Ii, Ri ]
-        // console.log( state );
-        lst.push( state );
-    }
-}
 
 
 </script>
@@ -121,7 +58,10 @@ function calc(state,alpha,beta,gamma) {
 <script>
 
 var chart ;
-function dispChart() {
+/**
+ * チャート表示
+ */
+function dispChart(lst) {
     var lst_s = ['Susceptible'] ;
     var lst_e = ['Exposed'] ;
     var lst_i = ['Infected'] ;
@@ -152,25 +92,106 @@ function dispChart() {
 </script>
 
 <script>
+/*
+var Sinit  = 3000    // 無免疫者（総数）
+var Einit  = 0       // 潜伏期間
+var Iinit  = 5       // 発病者
+var Rinit  = 0       // 有免疫
+
+
+var R0 = 10.0       // 基本再生産数
+var lp = 14         // 潜伏期間
+var ip = 7          // 発症期間
+var D  = R0*ip      // 回復期間
+var T  = 0.0        // 検査で隔離
+
+var alpha = 1/lp     // 潜伏率
+var gamma = 1/ip     // 回復率
+var beta  = R0*gamma // 感染率
+var lst = [] ;
+*/
+
 var vm = new Vue({
     el: '#app',
     data: {
-        Sinit: Sinit,
-        Iinit: Iinit,
-        beta: beta,
-        R0: R0,
-        lp: lp,
-        ip: ip,
-        T: T,
-        D: D,
-        gamma: gamma,
-        alpha: alpha,
+        // 初期値
+        Sinit: 3000,    // 無免疫者（総数）
+        Einit: 0,       // 潜伏期間者
+        Iinit: 5,       // 発病者
+        Rinit: 0,       // 免疫獲得者
+
+        R0: 2.5,        // 基本再生産数
+        lp: 14,         // 潜伏期間
+        ip: 7,          // 発症期間
+        D: this.R0 * this.ip,       // 回復期間
+        T: 0.0,         // 検査で隔離
+
+        alpha: 1/this.lp,   // 潜伏率
+        gamma: 1/this.ip,   // 回復率
+        beta: this.R0 * this.gamma,     // 感染率
+
+        t_max: 500,     // 全体の日数
     },
 
     mounted: function() {
         this.clickCalc();
     },
     methods: {
+        /**
+         * 差分の計算
+         */
+        seir_eq: function(v,t,alpha,beta,gamma,N) {
+            S = v[0]
+            E = v[1]
+            I = v[2]
+            R = v[3]
+            ds = - beta * I / N * S             // dS/dt = -βI/N*S
+            de = beta * I / N * S - alpha * E   // dE/dt = βI/N*S-αE
+            di = alpha * E - gamma * I          // dI/dt = αE - γI
+            dr = gamma * I                      // dR/dt = γI 
+
+            return [ds,de,di,dr];
+        },
+
+        /**
+         * 全体の計算
+         */
+        calc: function(state,alpha,beta,gamma) {
+            var dt = 1 ;
+            var lst = []
+            var N = Sinit + Einit + Iinit + Rinit
+            console.log( state );
+
+            for ( var i=0; i<this.t_max; i++ ) {
+
+                var d =  this.seir_eq( state, i, alpha,beta,gamma, N )
+                var Si = state[0]+d[0]
+                var Ei = state[1]+d[1]
+                var Ii = state[2]+d[2]
+                var Ri = state[3]+d[3]
+                // 感染者を発見して隔離する
+                dx = Ii * T
+                Ii = Ii - dx
+                Ri = Ri + dx // 免疫者に加算
+
+                // マイナス値を調節する
+                if ( Si < 0 ) {
+                    Ei = Ei + Si; Si = 0;
+                }
+                if ( Ei < 0 ) {
+                    Ii = Ii + Ei; Ei = 0;
+                }
+                if ( Ii < 0 ) {
+                    Ri = Ri + Ii; Ii = 0;
+                }
+
+                state = [ Si, Ei, Ii, Ri ]
+                // console.log( state );
+                lst.push( state );
+            }
+            return lst ;
+        },
+
         clickCalc: function() {
             Sinit = Number(this.Sinit) ;
             Einit = 0
@@ -191,9 +212,10 @@ console.log("beta: " + beta );
 console.log("lp: " + lp );
 console.log("ip: " + ip );
 console.log("T: " + T );
+
             var state = [Sinit,Einit,Iinit,Rinit];
-            calc(state,alpha,beta,gamma);
-            dispChart();
+            var lst = this.calc(state,alpha,beta,gamma);
+            dispChart(lst);
         },
         clickTmuins: function() {
             if ( 0.0 < this.T ) {
